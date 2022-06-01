@@ -1,11 +1,13 @@
 {
 	"dependencies": {
 		"@types/nightmare": "^2.10.6",
-		"nightmare": "^3.0.2"
+		"nightmare": "^3.0.2",
+		"prettier": "^2.6.2"
 	},
 	"scripts": {
 		"compile": "npx tsc test.ts",
-		"execute": "npx tsc test.ts && node test.js"
+		"execute": "npx tsc test.ts && node test.js",
+		"debug": "npx tsc test.ts && set DEBUG=nightmare && node test.js debug"
 	},
 	"devDependencies": {
 		"typescript": "^4.7.2"

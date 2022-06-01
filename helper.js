@@ -1,0 +1,1 @@
+const logTest = () => console.log('THIS IS ONLY A TEST');
