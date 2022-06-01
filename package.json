@@ -1,0 +1,13 @@
+{
+	"dependencies": {
+		"@types/nightmare": "^2.10.6",
+		"nightmare": "^3.0.2"
+	},
+	"scripts": {
+		"compile": "npx tsc test.ts",
+		"execute": "npx tsc test.ts && node test.js"
+	},
+	"devDependencies": {
+		"typescript": "^4.7.2"
+	}
+}
