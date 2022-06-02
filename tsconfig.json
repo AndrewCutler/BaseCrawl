@@ -1,4 +1,4 @@
 {
-	"files": ["test.ts"],
+	"files": ["crawl.ts"],
 	"exclude": ["node_modules"]
 }

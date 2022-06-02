@@ -5,9 +5,9 @@
 		"prettier": "^2.6.2"
 	},
 	"scripts": {
-		"compile": "npx tsc test.ts",
-		"execute": "npx tsc test.ts && node test.js",
-		"debug": "npx tsc test.ts && set DEBUG=nightmare && node test.js debug"
+		"compile": "npx tsc crawl.ts",
+		"execute": "npx tsc crawl.ts && node crawl.js",
+		"debug": "npx tsc crawl.ts && set DEBUG=nightmare && node crawl.js debug"
 	},
 	"devDependencies": {
 		"typescript": "^4.7.2"
