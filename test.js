@@ -18,18 +18,18 @@ var testGetHomer = function (rows) {
 };
 var logTest;
 nightmare
-    // .inject('js', './helper.js')
+    // .goto('about:blank')
     .goto('https://www.baseball-reference.com/players/a/alonspe01.shtml')
+    .inject('js', './helper.js')
     .wait('#batting_standard_sh')
+    // .wait()
     .evaluate(function () {
-    // logTest();
-    // const rows = getStandardSeasonRows(['2021', '2022']);
-    var rows = ['2021', '2022'].map(function (year) { return document.getElementById("batting_standard.".concat(year)); });
-    return rows[0].children;
-    // const row = document.getElementById('batting_standard.2022');
-    // return (Array.from(row.children).find(({ attributes }) => attributes['data-stat'].value === 'HR') as HTMLElement).innerText;
+    // return document.getElementById('batting_standard.2022');
+    var rows = getStandardSeasonRows(['2021', '2022']);
+    return rows.map(function (row) { return Array.from(row.children).find(function (_a) {
+        var stat = _a.dataset.stat;
+        return stat === 'HR';
+    }).outerText; });
 })
     .end()
-    .then(console.log)["catch"](function (error) {
-    console.error(error);
-});
+    .then(console.log)["catch"](console.error);
