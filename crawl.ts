@@ -1,7 +1,9 @@
 import Nightmare = require('nightmare');
 
-const isDebug = process.argv[2] === 'debug';
+const express = require('express');
 const _Nightmare = require('nightmare');
+
+const isDebug = process.argv[2] === 'debug';
 const debugOptions = {
     show: true,
     openDevTools: {
@@ -9,19 +11,22 @@ const debugOptions = {
     },
 }
 const nightmare: Nightmare = new _Nightmare(isDebug ? debugOptions : { show: false });
+const server = express();
 
 let getStandardSeasonRows;
 const baseUrl = 'https://www.baseball-reference.com';
 
-nightmare
-    .goto(baseUrl)
-    .inject('js', './helper.js')
-    .wait()
-    .type('.search .ac-input', 'pete')
-    .wait('.ac-dataset-br__players .ac-suggestions')
-    .evaluate(() => {
-        return Array.from(document.querySelectorAll('.ac-suggestion')).map(e => ({ name: (e as any).__value, id: (e as any).__data.i }));
-    })
-    .end()
-    .then(console.log)
-    .catch(console.error)
+// TODO: install concurrently or osome other way to restart on save
+
+server.get('/search/:name', async ({ params: { name } }, res) => {
+    await nightmare.goto(baseUrl);
+    await nightmare.wait();
+    await nightmare.type('.search .ac-input', name);
+    await nightmare.wait('.ac-dataset-br__players .ac-suggestions');
+    const result = await nightmare.evaluate(() => Array.from(document.querySelectorAll('.ac-suggestion')).map(e => ({ name: (e as any).__value, id: (e as any).__data.i })))
+
+
+    res.send(result);
+});
+
+server.listen(3000, () => console.log('Started sever on port 3000.'));
