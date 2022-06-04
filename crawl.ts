@@ -1,14 +1,15 @@
-import Nightmare = require('nightmare');
+import * as Nightmare from 'nightmare';
+import { ISearchResultData, ISearchResult, SearchResultResponse } from './models';
 
 const express = require('express');
 const _Nightmare = require('nightmare');
 
 const isDebug = process.argv[2] === 'debug';
 const debugOptions = {
-	show: true,
-	openDevTools: {
-		mode: 'detach'
-	},
+    show: true,
+    openDevTools: {
+        mode: 'detach'
+    },
 }
 const nightmare: Nightmare = new _Nightmare(isDebug ? debugOptions : { show: false });
 const server = express();
@@ -16,94 +17,50 @@ const server = express();
 
 const baseUrl = 'https://www.baseball-reference.com';
 
-interface ISearchResultData {
-	/**
-	 * Player's active status.
-	 */
-	a: number; // 0 or 1; active status
-
-	/**
-	 * Prefix for player's shtml page
-	 */
-	i: string;
-
-	/**
-	 * Player name.
-	 */
-	n: string;
-
-	/**
-	 * Player's active years, hyphen-separated.
-	 */
-	y: string;
-}
-
-interface ISearchResult extends Element {
-	__data: ISearchResultData;
-}
-
-class SearchResultDataResponse {
-	IsActive: boolean;
-	Endpoint: string;
-	Name: string;
-	Years: string;
-	constructor(base: ISearchResultData) {
-		this.IsActive = base.a === 1;
-		this.Endpoint = base.i;
-		this.Name = base.n;
-		this.Years = base.y;
-	}
-}
-
-class SearchResultResponse {
-	Data: SearchResultDataResponse[];
-	Count: number;
-	constructor(data: ISearchResultData[]) {
-		this.Data = data.map(datum => new SearchResultDataResponse(datum));
-		this.Count = data.length;
-	}
-}
-
 // TODO: install concurrently or osome other way to restart on save
 
+/**
+ * Performs a lookup of players by name.
+ * @returns @see SearchResultResponse.
+ */
 server.get('/search/:name', async ({ params: { name } }, res) => {
-	await nightmare.goto(baseUrl);
-	await nightmare.wait();
-	await nightmare.type('.search .ac-input', name);
-	await nightmare.wait('.ac-dataset-br__players .ac-suggestions');
-	const result: ISearchResultData[] = await nightmare.evaluate(() => {
-		const suggestions = Array.from(document.querySelectorAll('.ac-suggestion'));
+    await nightmare.goto(baseUrl);
+    await nightmare.wait();
+    await nightmare.type('.search .ac-input', name);
+    await nightmare.wait('.ac-dataset-br__players .ac-suggestions');
+    const result: ISearchResultData[] = await nightmare.evaluate(() => {
+        const suggestions = Array.from(document.querySelectorAll('.ac-suggestion')) as ISearchResult[];
 
-		return suggestions.map(({ __data: data }: ISearchResult) => data);
-	}) as ISearchResultData[];
+        return suggestions.map(({ __data: data }: ISearchResult) => data);
+    }) as ISearchResultData[];
 
 
-	res.send(new SearchResultResponse(result));
+    res.send(new SearchResultResponse(result));
 });
 
-server.get('/stats/:endpoint/:years/:categories', async ({ params }, res) => {
-	const { endpoint, years: _years, categories } = params;
+/**
+ * Grabs all stats for a given player.
+ */
+server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
+    const playerUrl = `${baseUrl}/players/${endpoint[0]}/${endpoint}.shtml`;
 
-	const years: string[] = _years.split(',');
+    await nightmare.goto(playerUrl);
+    await nightmare.wait();
+    const result = await nightmare.evaluate(() => {
+        const getActiveYears = null;
+        const getStatByYear = (stat: string, row: HTMLCollection): string => {
+            return (Array.from(row) as HTMLElement[]).find(child => child.getAttribute('data-stat') === stat).innerText;
+        }
 
-	const playerUrl = `${baseUrl}/players/${endpoint[0]}/${endpoint}.shtml`;
+        return ['2009'].map(year => {
+            const yearRow = document.getElementById(`batting_standard.${year}`);
+            const count = getStatByYear('HR', yearRow.children);
 
-	await nightmare.goto(playerUrl);
-	await nightmare.wait();
-	nightmare.evaluate((playerUrl) => {
-		const getStatByYear = (stat: string, row: HTMLCollection): string => {
-			return (Array.from(row) as HTMLElement[]).find(child => child.getAttribute('data-stat') === stat).innerText;
-		}
+            return { count, year };
+        });
+    });
 
-		return years.map(year => {
-			const yearRow = document.getElementById(`batting_standard.${year}`);
-			const count = getStatByYear('HR', yearRow.children);
-
-			return { count, year };
-		});
-	}, playerUrl).then(() => undefined);
-
-	res.send(result);
+    res.send(result);
 });
 
 server.listen(3000, () => console.log('Started sever on port 3000.'));
