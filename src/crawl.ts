@@ -76,6 +76,12 @@ server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
         const getStatByYear = (stat: string, row: HTMLCollection): string => {
             return (Array.from(row) as HTMLElement[]).find(child => child.getAttribute('data-stat') === stat).innerText;
         }
+        const getWARByYear = (year: string) => {
+            const valueRow = document.getElementById(`batting_value.${year}`);
+            const war = (Array.from(valueRow.children)[15] as HTMLElement).innerText;
+
+            return { Name: 'WAR', value: parseFloat(war) };
+        }
 
         return getActiveFullYears.map(yearRow => {
             const stats = [];
@@ -84,6 +90,8 @@ server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
                 stats.push({ Name: key, Value: value });
             }
             const year = getRowYear(yearRow);
+
+            stats.push(getWARByYear(year));
 
             return { Stats: stats, Year: year };
         });
