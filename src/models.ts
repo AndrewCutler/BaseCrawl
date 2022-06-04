@@ -46,3 +46,18 @@ export class SearchResultResponse {
         this.Count = data.length;
     }
 }
+
+export interface IYearStats {
+    Year: string;
+    Stats: Stat[];
+}
+
+export interface Stat {
+    Name: Stats;
+    Value: string;
+}
+
+export enum Stats {
+    HomeRun = 'HR',
+    Hits = 'H',
+}

@@ -1,5 +1,4 @@
 import * as Nightmare from 'nightmare';
-import { ISearchResultData, ISearchResult, SearchResultResponse } from './models';
 
 const express = require('express');
 const _Nightmare = require('nightmare');
@@ -14,10 +13,9 @@ const debugOptions = {
 const nightmare: Nightmare = new _Nightmare(isDebug ? debugOptions : { show: false });
 const server = express();
 
-
 const baseUrl = 'https://www.baseball-reference.com';
 
-// TODO: install concurrently or osome other way to restart on save
+// TODO: figure out model import/compilation
 
 /**
  * Performs a lookup of players by name.
@@ -28,14 +26,22 @@ server.get('/search/:name', async ({ params: { name } }, res) => {
     await nightmare.wait();
     await nightmare.type('.search .ac-input', name);
     await nightmare.wait('.ac-dataset-br__players .ac-suggestions');
-    const result: ISearchResultData[] = await nightmare.evaluate(() => {
-        const suggestions = Array.from(document.querySelectorAll('.ac-suggestion')) as ISearchResult[];
+    const result = await nightmare.evaluate(() => {
+        const suggestions = Array.from(document.querySelectorAll('.ac-suggestion')) as any;
 
-        return suggestions.map(({ __data: data }: ISearchResult) => data);
-    }) as ISearchResultData[];
+        return suggestions.map(({ __data: data }) => data);
+    }) as any[];
 
 
-    res.send(new SearchResultResponse(result));
+    res.send({
+        Data: result.map(base => ({
+            IsActive: base.a === 1,
+            Endpoint: base.i,
+            Name: base.n,
+            Years: base.y,
+        })),
+        Count: result.length,
+    });
 });
 
 /**
@@ -47,6 +53,24 @@ server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
     await nightmare.goto(playerUrl);
     await nightmare.wait();
     const result = await nightmare.evaluate(() => {
+        // TODO: move out of evaluate scope.
+        const Stats = {
+            'HomeRun': 'HR',
+            'Hits': 'H',
+            'Games': 'G',
+            'PlateAppearances': 'PA',
+            'AtBats': 'AB',
+            'Runs': 'R',
+            'Doubles': '2B',
+            'Triples': '3B',
+            'RunsBattedIn': 'RBI',
+            'StolenBases': 'SB',
+            'CaughtStealing': 'CS',
+            'Walks': 'BB',
+            'Strikeouts': 'SO',
+            'TotalBases': 'TB',
+            'SacFlys': 'SF',
+        };
         const getRowYear = (row: Element) => row.id.slice(17);
         const getActiveFullYears = Array.from(document.querySelectorAll('[id^="batting_standard."]'));
         const getStatByYear = (stat: string, row: HTMLCollection): string => {
@@ -54,10 +78,14 @@ server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
         }
 
         return getActiveFullYears.map(yearRow => {
-            const count = getStatByYear('HR', yearRow.children);
+            const stats = [];
+            for (const key of Object.keys(Stats)) {
+                const value = parseInt(getStatByYear(Stats[key], yearRow.children), 10);
+                stats.push({ Name: key, Value: value });
+            }
             const year = getRowYear(yearRow);
 
-            return { count, year };
+            return { Stats: stats, Year: year };
         });
     });
 
