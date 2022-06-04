@@ -50,7 +50,7 @@ server.get('/search/:name', cors(corsOptions), async (req, res) => {
             // last row is always dummy value if { IsActive: false, Name: %searchString% }.
             // This is a hacky way to filter it out rather than fix it through querySelector.
         })).filter(({ Endpoint }) => !!Endpoint),
-        Count: result.length,
+        Count: result.length - 1,
     });
 });
 
