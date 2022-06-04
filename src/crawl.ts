@@ -2,6 +2,7 @@ import * as Nightmare from 'nightmare';
 
 const express = require('express');
 const _Nightmare = require('nightmare');
+const cors = require('cors');
 
 const isDebug = process.argv[2] === 'debug';
 const debugOptions = {
@@ -10,18 +11,26 @@ const debugOptions = {
         mode: 'detach'
     },
 }
+const corsOptions = {
+    origin: 'http://localhost:3000'
+};
+
+const PORT = '1986';
+
 const nightmare: Nightmare = new _Nightmare(isDebug ? debugOptions : { show: false });
-const server = express();
+const server = express(/*cors()*/);
 
 const baseUrl = 'https://www.baseball-reference.com';
 
 // TODO: figure out model import/compilation
+// TODO: figure out injecting into evaluate scope?
 
 /**
  * Performs a lookup of players by name.
  * @returns @see SearchResultResponse.
  */
-server.get('/search/:name', async ({ params: { name } }, res) => {
+server.get('/search/:name', cors(corsOptions), async (req, res) => {
+    const { params: { name } } = req;
     await nightmare.goto(baseUrl);
     await nightmare.wait();
     await nightmare.type('.search .ac-input', name);
@@ -32,14 +41,15 @@ server.get('/search/:name', async ({ params: { name } }, res) => {
         return suggestions.map(({ __data: data }) => data);
     }) as any[];
 
-
-    res.send({
+    res.json({
         Data: result.map(base => ({
             IsActive: base.a === 1,
             Endpoint: base.i,
             Name: base.n,
             Years: base.y,
-        })),
+            // last row is always dummy value if { IsActive: false, Name: %searchString% }.
+            // This is a hacky way to filter it out rather than fix it through querySelector.
+        })).filter(({ Endpoint }) => !!Endpoint),
         Count: result.length,
     });
 });
@@ -47,7 +57,7 @@ server.get('/search/:name', async ({ params: { name } }, res) => {
 /**
  * Grabs all stats for a given player.
  */
-server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
+server.get('/stats/:endpoint', cors(corsOptions), async ({ params: { endpoint } }, res) => {
     const playerUrl = `${baseUrl}/players/${endpoint[0]}/${endpoint}.shtml`;
 
     await nightmare.goto(playerUrl);
@@ -97,7 +107,7 @@ server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
         });
     });
 
-    res.send(result);
+    res.json(result);
 });
 
-server.listen(3000, () => console.log('Started sever on port 3000.'));
+server.listen(PORT, () => console.log(`Started sever on port ${PORT}.`));
