@@ -47,14 +47,15 @@ server.get('/stats/:endpoint', async ({ params: { endpoint } }, res) => {
     await nightmare.goto(playerUrl);
     await nightmare.wait();
     const result = await nightmare.evaluate(() => {
-        const getActiveYears = null;
+        const getRowYear = (row: Element) => row.id.slice(17);
+        const getActiveFullYears = Array.from(document.querySelectorAll('[id^="batting_standard."]'));
         const getStatByYear = (stat: string, row: HTMLCollection): string => {
             return (Array.from(row) as HTMLElement[]).find(child => child.getAttribute('data-stat') === stat).innerText;
         }
 
-        return ['2009'].map(year => {
-            const yearRow = document.getElementById(`batting_standard.${year}`);
+        return getActiveFullYears.map(yearRow => {
             const count = getStatByYear('HR', yearRow.children);
+            const year = getRowYear(yearRow);
 
             return { count, year };
         });

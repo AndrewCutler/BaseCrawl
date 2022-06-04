@@ -36,6 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 exports.__esModule = true;
+var models_1 = require("./models");
 var express = require('express');
 var _Nightmare = require('nightmare');
 var isDebug = process.argv[2] === 'debug';
@@ -47,9 +48,12 @@ var debugOptions = {
 };
 var nightmare = new _Nightmare(isDebug ? debugOptions : { show: false });
 var server = express();
-var getStandardSeasonRows;
 var baseUrl = 'https://www.baseball-reference.com';
-// TODO: install concurrently
+// TODO: install concurrently or osome other way to restart on save
+/**
+ * Performs a lookup of players by name.
+ * @returns @see SearchResultResponse.
+ */
 server.get('/search/:name', function (_a, res) {
     var name = _a.params.name;
     return __awaiter(void 0, void 0, void 0, function () {
@@ -68,8 +72,51 @@ server.get('/search/:name', function (_a, res) {
                     return [4 /*yield*/, nightmare.wait('.ac-dataset-br__players .ac-suggestions')];
                 case 4:
                     _b.sent();
-                    return [4 /*yield*/, nightmare.evaluate(function () { return Array.from(document.querySelectorAll('.ac-suggestion')).map(function (e) { return ({ name: e.__value, id: e.__data.i }); }); })];
+                    return [4 /*yield*/, nightmare.evaluate(function () {
+                            var suggestions = Array.from(document.querySelectorAll('.ac-suggestion'));
+                            return suggestions.map(function (_a) {
+                                var data = _a.__data;
+                                return data;
+                            });
+                        })];
                 case 5:
+                    result = _b.sent();
+                    res.send(new models_1.SearchResultResponse(result));
+                    return [2 /*return*/];
+            }
+        });
+    });
+});
+/**
+ * Grabs all stats for a given player.
+ */
+server.get('/stats/:endpoint', function (_a, res) {
+    var endpoint = _a.params.endpoint;
+    return __awaiter(void 0, void 0, void 0, function () {
+        var playerUrl, result;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    playerUrl = "".concat(baseUrl, "/players/").concat(endpoint[0], "/").concat(endpoint, ".shtml");
+                    return [4 /*yield*/, nightmare.goto(playerUrl)];
+                case 1:
+                    _b.sent();
+                    return [4 /*yield*/, nightmare.wait()];
+                case 2:
+                    _b.sent();
+                    return [4 /*yield*/, nightmare.evaluate(function () {
+                            var getRowYear = function (row) { return row.id.slice(17); };
+                            var getActiveFullYears = Array.from(document.querySelectorAll('[id^="batting_standard."]'));
+                            var getStatByYear = function (stat, row) {
+                                return Array.from(row).find(function (child) { return child.getAttribute('data-stat') === stat; }).innerText;
+                            };
+                            return getActiveFullYears.map(function (yearRow) {
+                                var count = getStatByYear('HR', yearRow.children);
+                                var year = getRowYear(yearRow);
+                                return { count: count, year: year };
+                            });
+                        })];
+                case 3:
                     result = _b.sent();
                     res.send(result);
                     return [2 /*return*/];

@@ -1,0 +1,6 @@
+{
+	"watch": ["src"],
+	"ext": "ts",
+	"ignore": [".gitignore", "node_modules"],
+	"exec": "ts-node ./src/crawl.ts"
+}
