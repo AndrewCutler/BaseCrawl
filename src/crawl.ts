@@ -27,6 +27,8 @@ const baseUrl = 'https://www.baseball-reference.com';
 // TODO: handle search requests that return nothing
 // TODO: handle cancellation requests
 
+server.get('/', (req, res) => res.send('Home plate.'));
+
 /**
  * Performs a lookup of players by name.
  * @returns @see SearchResultResponse.
