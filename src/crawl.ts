@@ -22,6 +22,8 @@ const server = express(/*cors()*/);
 
 const baseUrl = 'https://www.baseball-reference.com';
 
+const getCors = () => process.env.ENVIRONMENT === 'heroku' ? undefined : cors(corsOptions);
+
 // TODO: figure out model import/compilation
 // TODO: figure out injecting into evaluate scope?
 // TODO: handle search requests that return nothing
@@ -33,7 +35,7 @@ server.get('/', (req, res) => res.send('Home plate.'));
  * Performs a lookup of players by name.
  * @returns @see SearchResultResponse.
  */
-server.get('/search/:name', cors(corsOptions), async (req, res, next) => {
+server.get('/search/:name', getCors(), async (req, res, next) => {
     const { params: { name } } = req;
     try {
 
@@ -66,7 +68,7 @@ server.get('/search/:name', cors(corsOptions), async (req, res, next) => {
 /**
  * Grabs all stats for a given player.
  */
-server.get('/stats/:endpoint', cors(corsOptions), async ({ params: { endpoint } }, res, next) => {
+server.get('/stats/:endpoint', getCors(), async ({ params: { endpoint } }, res, next) => {
     const playerUrl = `${baseUrl}/players/${endpoint[0]}/${endpoint}.shtml`;
 
     try {
