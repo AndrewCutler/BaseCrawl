@@ -15,7 +15,7 @@ const corsOptions = {
     origin: 'http://localhost:3000'
 };
 
-const PORT = '1986';
+const PORT = process.env.PORT || '1986';
 
 const nightmare: Nightmare = new _Nightmare(isDebug ? debugOptions : { show: false });
 const server = express(/*cors()*/);
