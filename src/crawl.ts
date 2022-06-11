@@ -1,152 +1,157 @@
-
-import * as Nightmare from 'nightmare';
-
+const cheerio = require('cheerio');
 const express = require('express');
-const _Nightmare = require('nightmare');
+const axios = require('axios');
 const cors = require('cors');
 const fs = require('fs');
 
-const isDebug = process.argv[2] === 'debug';
-const debugOptions = {
-    show: true,
-    openDevTools: {
-        mode: 'detach'
-    },
-}
 const corsOptions = {
-    origin: 'http://localhost:3000'
+	origin: 'http://localhost:3000'
 };
-
 const PORT = process.env.PORT || '1986';
-
-const nightmare: Nightmare = new _Nightmare(isDebug ? debugOptions : { show: false });
-const server = express(/*cors()*/);
-
 const baseUrl = 'https://www.baseball-reference.com';
-
 const playerData = JSON.parse(fs.readFileSync('players.json', { encoding: 'utf-8' }));
 
-// TODO: handle cancellation requests
+const server = express(/*cors()*/);
 
-server.get('/', (req, res) => {
-    res.send('Home plate.');
-});
+/**
+ * Models and helper functions
+ */
+const Stats = {
+	HomeRun: 'HR',
+	Hits: 'H',
+	Games: 'G',
+	PlateAppearances: 'PA',
+	AtBats: 'AB',
+	Runs: 'R',
+	Doubles: '2B',
+	Triples: '3B',
+	RunsBattedIn: 'RBI',
+	StolenBases: 'SB',
+	CaughtStealing: 'CS',
+	Walks: 'BB',
+	Strikeouts: 'SO',
+	TotalBases: 'TB',
+	SacFlys: 'SF'
+};
 
 const buildPlayerLookup = () => {
-    fs.readFile('players.csv', (err, data) => {
-        if (err) throw err;
-        const playerArray = data.toString().split('\n').map(p => p.split(','));
+	fs.readFile('players.csv', (err, data) => {
+		if (err) throw err;
+		const playerArray = data.toString().split('\n').map(p => p.split(','));
 
-        const playerLookup = playerArray.reduce((prev, curr) => {
-            const [endpoint, name, years] = curr;
-            const entry = {
-                Endpoint: endpoint,
-                Name: name,
-                Years: years
-            };
+		const playerLookup = playerArray.reduce((prev, curr) => {
+			const [endpoint, name, years] = curr;
+			const entry = {
+				Endpoint: endpoint,
+				Name: name,
+				Years: years
+			};
 
-            if (prev[name]) {
-                prev[name] = [...prev[name], entry]
-            } else {
-                prev[name] = [entry];
-            }
+			if (prev[name]) {
+				prev[name] = [...prev[name], entry]
+			} else {
+				prev[name] = [entry];
+			}
 
-            return prev;
-        }, {});
+			return prev;
+		}, {});
 
-        fs.writeFile('players.json', JSON.stringify(playerLookup), console.error)
-    });
+		fs.writeFile('players.json', JSON.stringify(playerLookup), console.error)
+	});
 }
 
 // buildPlayerLookup();
+
+const getPlayerStats = (url) => {
+	return axios.get(url).then((response) => {
+		if (response && response.data) {
+			const $ = cheerio.load(response.data);
+
+			const getStandardBattingYears = (): any[] =>
+				$('tr[id^="batting_standard."]').each((_, element) => $(element).html());
+			const getStatByYear = (stat, year) =>
+				$(`[id="${year}"] [data-stat="${stat}"]`).text();
+
+			const playerStats: {
+				Year: string;
+				Stats: { Name: string, Value: string }[];
+			}[] = [];
+
+			for (const row of getStandardBattingYears()) {
+				const id = row.attribs.id;
+				const year = id.split('.')[1];
+
+				const stats: { Name: string, Value: string }[] = [];
+				for (const stat in Stats) {
+					const value = getStatByYear(Stats[stat], id);
+					stats.push({
+						Name: stat,
+						Value: value
+					});
+				}
+
+				playerStats.push({
+					Year: year,
+					Stats: stats
+				});
+			}
+
+			return playerStats;
+		} else {
+			console.error(`Missing response for ${url}`);
+		}
+	});
+};
+
+/**
+ * Routes.
+ */
+server.get('/', (req, res) => {
+	res.send('Home plate.');
+});
 
 /**
  * Performs a lookup of players by name.
  * @returns Lookup of name to list of players with that name.
  */
 server.get('/search/:name', cors(corsOptions), async (req, res, next) => {
-    const { params: { name } } = req;
+	const { params: { name } } = req;
 
-    try {
-        const matches = new Set<string>();
-        const _name = name.toLowerCase();
-        for (const key in playerData) {
-            if (key.toLowerCase().includes(_name) && !matches.has(_name)) {
-                matches.add(key);
-            }
-        }
+	try {
+		const matches = new Set<string>();
+		const _name = name.toLowerCase();
+		for (const key in playerData) {
+			if (key.toLowerCase().includes(_name) && !matches.has(_name)) {
+				matches.add(key);
+			}
+		}
 
-        const result = Array.from(matches)
-            .reduce((prev, key) => ({ ...prev, [key]: playerData[key] }), {});
+		const result = Array.from(matches)
+			.reduce((prev, key) => ({ ...prev, [key]: playerData[key] }), {});
 
-        res.json(result);
-    } catch (error) {
-        next(error);
-    }
+		res.json(result);
+	} catch (error) {
+		next(error);
+	}
 });
 
 /**
- * Grabs all stats for a given player.
+ * Grabs all stats for a given player organized into year.
  */
 server.get('/stats/:endpoint', cors(corsOptions), async ({ params: { endpoint } }, res, next) => {
-    const playerUrl = `${baseUrl}/players/${endpoint[0]}/${endpoint}.shtml`;
+	const playerUrl = `${baseUrl}/players/${endpoint[0]}/${endpoint}.shtml`;
 
-    try {
-        await nightmare.goto(playerUrl);
-        await nightmare.wait();
-        const result = await nightmare.evaluate(() => {
-            // TODO: move out of evaluate scope.
-            const Stats = {
-                'HomeRun': 'HR',
-                'Hits': 'H',
-                'Games': 'G',
-                'PlateAppearances': 'PA',
-                'AtBats': 'AB',
-                'Runs': 'R',
-                'Doubles': '2B',
-                'Triples': '3B',
-                'RunsBattedIn': 'RBI',
-                'StolenBases': 'SB',
-                'CaughtStealing': 'CS',
-                'Walks': 'BB',
-                'Strikeouts': 'SO',
-                'TotalBases': 'TB',
-                'SacFlys': 'SF',
-            };
-            const getRowYear = (row: Element) => row.id.slice(17);
-            const getActiveFullYears = Array.from(document.querySelectorAll('[id^="batting_standard."]'));
-            const getStatByYear = (stat: string, row: HTMLCollection): string => {
-                return (Array.from(row) as HTMLElement[]).find(child => child.getAttribute('data-stat') === stat).innerText;
-            }
-            const getWARByYear = (year: string) => {
-                const valueRow = document.getElementById(`batting_value.${year}`);
-                const war = (Array.from(valueRow.children)[15] as HTMLElement).innerText;
-
-                return { Name: 'WAR', Value: parseFloat(war) };
-            }
-
-            return getActiveFullYears.map(yearRow => {
-                const stats = [];
-                for (const key of Object.keys(Stats)) {
-                    const value = parseInt(getStatByYear(Stats[key], yearRow.children), 10);
-                    stats.push({ Name: key, Value: value });
-                }
-                const year = getRowYear(yearRow);
-
-                stats.push(getWARByYear(year));
-
-                return { Stats: stats, Year: year };
-            });
-        });
-
-        res.json(result);
-    } catch (error) {
-        next(error)
-    }
+	try {
+		const result = await getPlayerStats(playerUrl);
+		
+		res.json(result);
+	} catch (error) {
+		next(error)
+	}
 });
 
 server.get('/refresh', (req, res) => {
-    // TODO: retrieve player data and update once daily
+	// TODO: retrieve player data and update once daily
 })
 
 server.listen(PORT, () => console.log(`Started sever on port ${PORT}.`));
