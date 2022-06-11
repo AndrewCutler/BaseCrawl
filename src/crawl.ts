@@ -40,14 +40,13 @@ const buildPlayerLookup = () => {
         const playerLookup = playerArray.reduce((prev, curr) => {
             const [endpoint, name, years] = curr;
             const entry = {
-                [name]: {
-                    Endpoint: endpoint,
-                    Name: name,
-                    Years: years
-                }
+                Endpoint: endpoint,
+                Name: name,
+                Years: years
             };
+
             if (prev[name]) {
-                prev[name] = [...prev, entry]
+                prev[name] = [...prev[name], entry]
             } else {
                 prev[name] = [entry];
             }
