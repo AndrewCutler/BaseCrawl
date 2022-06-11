@@ -1,8 +1,10 @@
+
 import * as Nightmare from 'nightmare';
 
 const express = require('express');
 const _Nightmare = require('nightmare');
 const cors = require('cors');
+const fs = require('fs');
 
 const isDebug = process.argv[2] === 'debug';
 const debugOptions = {
@@ -22,42 +24,63 @@ const server = express(/*cors()*/);
 
 const baseUrl = 'https://www.baseball-reference.com';
 
-// TODO: figure out model import/compilation
-// TODO: figure out injecting into evaluate scope?
-// TODO: handle search requests that return nothing
+const playerData = JSON.parse(fs.readFileSync('players.json', { encoding: 'utf-8' }));
+
 // TODO: handle cancellation requests
 
-server.get('/', (req, res) => res.send('Home plate.'));
+server.get('/', (req, res) => {
+    res.send('Home plate.');
+});
+
+const buildPlayerLookup = () => {
+    fs.readFile('players.csv', (err, data) => {
+        if (err) throw err;
+        const playerArray = data.toString().split('\n').map(p => p.split(','));
+
+        const playerLookup = playerArray.reduce((prev, curr) => {
+            const [endpoint, name, years] = curr;
+            const entry = {
+                [name]: {
+                    Endpoint: endpoint,
+                    Name: name,
+                    Years: years
+                }
+            };
+            if (prev[name]) {
+                prev[name] = [...prev, entry]
+            } else {
+                prev[name] = [entry];
+            }
+
+            return prev;
+        }, {});
+
+        fs.writeFile('players.json', JSON.stringify(playerLookup), console.error)
+    });
+}
+
+// buildPlayerLookup();
 
 /**
  * Performs a lookup of players by name.
- * @returns @see SearchResultResponse.
+ * @returns Lookup of name to list of players with that name.
  */
 server.get('/search/:name', cors(corsOptions), async (req, res, next) => {
     const { params: { name } } = req;
+
     try {
+        const matches = new Set<string>();
+        const _name = name.toLowerCase();
+        for (const key in playerData) {
+            if (key.toLowerCase().includes(_name) && !matches.has(_name)) {
+                matches.add(key);
+            }
+        }
 
-        await nightmare.goto(baseUrl);
-        await nightmare.wait();
-        await nightmare.type('.search .ac-input', name);
-        await nightmare.wait('.ac-dataset-br__players .ac-suggestions');
-        const result = await nightmare.evaluate(() => {
-            const suggestions = Array.from(document.querySelectorAll('.ac-suggestion')) as any;
+        const result = Array.from(matches)
+            .reduce((prev, key) => ({ ...prev, [key]: playerData[key] }), {});
 
-            return suggestions.map(({ __data: data }) => data);
-        }) as any[];
-
-        res.json({
-            Data: result.map(base => ({
-                IsActive: base.a === 1,
-                Endpoint: base.i,
-                Name: base.n,
-                Years: base.y,
-                // last row is always dummy value if { IsActive: false, Name: %searchString% }.
-                // This is a hacky way to filter it out rather than fix it through querySelector.
-            })).filter(({ Endpoint }) => !!Endpoint),
-            Count: result.length - 1,
-        });
+        res.json(result);
     } catch (error) {
         next(error);
     }
@@ -122,5 +145,9 @@ server.get('/stats/:endpoint', cors(corsOptions), async ({ params: { endpoint } 
         next(error)
     }
 });
+
+server.get('/refresh', (req, res) => {
+    // TODO: retrieve player data and update once daily
+})
 
 server.listen(PORT, () => console.log(`Started sever on port ${PORT}.`));
