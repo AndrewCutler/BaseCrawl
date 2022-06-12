@@ -16,6 +16,16 @@ const server = express(/*cors()*/);
 /**
  * Models and helper functions
  */
+interface IStat {
+	Name: string;
+	Value: number;
+}
+
+interface IPlayerStats {
+	Year: string;
+	Stats: IStat[];
+}
+
 const Stats = {
 	HomeRun: 'HR',
 	Hits: 'H',
@@ -62,33 +72,35 @@ const buildPlayerLookup = () => {
 
 // buildPlayerLookup();
 
-const getPlayerStats = (url) => {
+const getPlayerStats = (url: string) => {
 	return axios.get(url).then((response) => {
 		if (response && response.data) {
 			const $ = cheerio.load(response.data);
 
+			const getWAR = (year) => $(`[id="batting_value.2022"]`);
+			console.log('row:', $(`tr[id="batting_value.2022"]`).html());
 			const getStandardBattingYears = (): any[] =>
 				$('tr[id^="batting_standard."]').each((_, element) => $(element).html());
-			const getStatByYear = (stat, year) =>
+			const getStatByYear = (stat: string, year: string) =>
 				$(`[id="${year}"] [data-stat="${stat}"]`).text();
 
-			const playerStats: {
-				Year: string;
-				Stats: { Name: string, Value: string }[];
-			}[] = [];
+			const playerStats: IPlayerStats[] = [];
 
 			for (const row of getStandardBattingYears()) {
 				const id = row.attribs.id;
 				const year = id.split('.')[1];
 
-				const stats: { Name: string, Value: string }[] = [];
+				const stats: IStat[] = [];
 				for (const stat in Stats) {
 					const value = getStatByYear(Stats[stat], id);
 					stats.push({
 						Name: stat,
-						Value: value
+						Value: parseInt(value, 10)
 					});
 				}
+
+				// const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
+				// console.log(getWAR(year));
 
 				playerStats.push({
 					Year: year,
@@ -105,6 +117,10 @@ const getPlayerStats = (url) => {
 
 /**
  * Routes.
+ */
+
+/**
+ * Useless landing route.
  */
 server.get('/', (req, res) => {
 	res.send('Home plate.');
@@ -143,7 +159,7 @@ server.get('/stats/:endpoint', cors(corsOptions), async ({ params: { endpoint } 
 
 	try {
 		const result = await getPlayerStats(playerUrl);
-		
+
 		res.json(result);
 	} catch (error) {
 		next(error)
