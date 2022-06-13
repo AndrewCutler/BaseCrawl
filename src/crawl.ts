@@ -20,10 +20,13 @@ interface IStats {
 	[name: string]: number;
 }
 
-interface IPlayerStats {
+interface ISeasonStats {
 	Year: string;
-	Age: string;
 	Stats: IStats;
+}
+
+interface IPlayerStats {
+	[age: string]: ISeasonStats;
 }
 
 const Stats = {
@@ -83,7 +86,7 @@ const getPlayerStats = (url: string) => {
 			const getStatByStandardBattingYear = (stat: string, year: string) =>
 				$(`[id="${year}"] [data-stat="${stat}"]`).text();
 
-			const playerStats: IPlayerStats[] = [];
+			let playerStats: IPlayerStats = {};
 
 			for (const row of getStandardBattingYears()) {
 				const id = row.attribs.id;
@@ -103,11 +106,10 @@ const getPlayerStats = (url: string) => {
 				const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
 				// console.log(getWAR(year).text());
 
-				playerStats.push({
-					Year: year,
-					Age: playerAge,
-					Stats: stats
-				});
+				playerStats = {
+					...playerStats,
+					[playerAge]: { Year: year, Stats: stats }
+				};
 			}
 
 			return playerStats;
