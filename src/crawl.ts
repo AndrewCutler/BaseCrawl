@@ -22,6 +22,7 @@ interface IStats {
 
 interface IPlayerStats {
 	Year: string;
+	Age: string;
 	Stats: IStats;
 }
 
@@ -80,7 +81,7 @@ const getPlayerStats = (url: string) => {
 			console.log('row:', $(`tr[id="batting_value.2022"]`).html());
 			const getStandardBattingYears = (): any[] =>
 				$('tr[id^="batting_standard."]').each((_, element) => $(element).html());
-			const getStatByYear = (stat: string, year: string) =>
+			const getStatByStandardBattingYear = (stat: string, year: string) =>
 				$(`[id="${year}"] [data-stat="${stat}"]`).text();
 
 			const playerStats: IPlayerStats[] = [];
@@ -88,10 +89,11 @@ const getPlayerStats = (url: string) => {
 			for (const row of getStandardBattingYears()) {
 				const id = row.attribs.id;
 				const year = id.split('.')[1];
+				const playerAge = getStatByStandardBattingYear('age', id);
 
 				let stats: IStats = {};
 				for (const stat in Stats) {
-					const value = getStatByYear(Stats[stat], id);
+					const value = getStatByStandardBattingYear(Stats[stat], id);
 					stats = {
 						...stats,
 						[stat]: parseInt(value, 10)
@@ -103,6 +105,7 @@ const getPlayerStats = (url: string) => {
 
 				playerStats.push({
 					Year: year,
+					Age: playerAge,
 					Stats: stats
 				});
 			}
