@@ -16,14 +16,13 @@ const server = express(/*cors()*/);
 /**
  * Models and helper functions
  */
-interface IStat {
-	Name: string;
-	Value: number;
+interface IStats {
+	[name: string]: number;
 }
 
 interface IPlayerStats {
 	Year: string;
-	Stats: IStat[];
+	Stats: IStats;
 }
 
 const Stats = {
@@ -90,13 +89,13 @@ const getPlayerStats = (url: string) => {
 				const id = row.attribs.id;
 				const year = id.split('.')[1];
 
-				const stats: IStat[] = [];
+				let stats: IStats = {};
 				for (const stat in Stats) {
 					const value = getStatByYear(Stats[stat], id);
-					stats.push({
-						Name: stat,
-						Value: parseInt(value, 10)
-					});
+					stats = {
+						...stats,
+						[stat]: parseInt(value, 10)
+					}
 				}
 
 				// const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
