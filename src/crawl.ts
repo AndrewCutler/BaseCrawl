@@ -77,8 +77,6 @@ const getPlayerStats = (url: string) => {
 		if (response && response.data) {
 			const $ = cheerio.load(response.data);
 
-			const getWAR = (year) => $(`[id="batting_value.2022"]`);
-			console.log('row:', $(`tr[id="batting_value.2022"]`).html());
 			const getStandardBattingYears = (): any[] =>
 				$('tr[id^="batting_standard."]').each((_, element) => $(element).html());
 			const getStatByStandardBattingYear = (stat: string, year: string) =>
@@ -100,8 +98,9 @@ const getPlayerStats = (url: string) => {
 					}
 				}
 
-				// const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
-				// console.log(getWAR(year));
+				// TODO: figure out WAR. Not rendered by cheerio or something?
+				const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
+				// console.log(getWAR(year).text());
 
 				playerStats.push({
 					Year: year,
