@@ -41,7 +41,8 @@ const Stats = {
 	Walks: 'BB',
 	Strikeouts: 'SO',
 	TotalBases: 'TB',
-	SacFlys: 'SF'
+	SacFlys: 'SF',
+	HitByPitch: 'HBP',
 };
 
 const buildPlayerLookup = () => {
