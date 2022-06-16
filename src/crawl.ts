@@ -41,6 +41,8 @@ const buildPlayerLookup = () => {
 	});
 }
 
+const stripStyling = (html: string): string => html.replace(/(<\/?strong>)|(<\/?em>)/g, '');
+
 // buildPlayerLookup();
 
 const getPlayerStats = (url: string) => {
@@ -50,9 +52,16 @@ const getPlayerStats = (url: string) => {
 
 			const getStandardBattingYears = (): any[] =>
 				$('tr[id^="batting_standard."]').each((_, element) => $(element).html());
-			const getStatByStandardBattingYear = (stat: string, year: string) =>
-				$(`[id="${year}"] [data-stat="${stat}"]`).text();
-			const getStatByCareer = (stat: string) => $(`#all_batting_standard tfoot tr td[data-stat=${stat}]`).html();
+			const getStatByStandardBattingYear = (stat: string, year: string) => {
+				const result = $(`[id="${year}"] [data-stat="${stat}"]`).html()
+				
+				return stripStyling(result);
+			}
+			const getStatByCareer = (stat: string) => {
+				const result = $(`#all_batting_standard tfoot tr td[data-stat=${stat}]`).html();
+				
+				return stripStyling(result);
+			}
 
 			let playerStats: IPlayerStats = {};
 
@@ -64,9 +73,6 @@ const getPlayerStats = (url: string) => {
 				let stats: IStats = {};
 				STATS.forEach(stat => {
 					const value = getStatByStandardBattingYear(stat, id);
-					if (stat === 'batting_avg') {
-						console.log(value);
-					}
 					stats = {
 						...stats,
 						[stat]: parseFloat(value)
