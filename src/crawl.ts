@@ -1,3 +1,5 @@
+import { IPlayerStats, IStats, STATS } from './models';
+
 const cheerio = require('cheerio');
 const express = require('express');
 const axios = require('axios');
@@ -12,41 +14,6 @@ const baseUrl = 'https://www.baseball-reference.com';
 const playerData = JSON.parse(fs.readFileSync('players.json', { encoding: 'utf-8' }));
 
 const server = express(/*cors()*/);
-
-/**
- * Models and helper functions
- */
-interface IStats {
-	[name: string]: number;
-}
-
-interface ISeasonStats {
-	Year: string;
-	Stats: IStats;
-}
-
-interface IPlayerStats {
-	[age: string]: ISeasonStats;
-}
-
-const Stats = {
-	HomeRun: 'HR',
-	Hits: 'H',
-	Games: 'G',
-	PlateAppearances: 'PA',
-	AtBats: 'AB',
-	Runs: 'R',
-	Doubles: '2B',
-	Triples: '3B',
-	RunsBattedIn: 'RBI',
-	StolenBases: 'SB',
-	CaughtStealing: 'CS',
-	Walks: 'BB',
-	Strikeouts: 'SO',
-	TotalBases: 'TB',
-	SacFlys: 'SF',
-	HitByPitch: 'HBP',
-};
 
 const buildPlayerLookup = () => {
 	fs.readFile('players.csv', (err, data) => {
@@ -85,6 +52,7 @@ const getPlayerStats = (url: string) => {
 				$('tr[id^="batting_standard."]').each((_, element) => $(element).html());
 			const getStatByStandardBattingYear = (stat: string, year: string) =>
 				$(`[id="${year}"] [data-stat="${stat}"]`).text();
+			const getStatByCareer = (stat: string) => $(`#all_batting_standard tfoot tr td[data-stat=${stat}]`).html();
 
 			let playerStats: IPlayerStats = {};
 
@@ -94,13 +62,13 @@ const getPlayerStats = (url: string) => {
 				const playerAge = getStatByStandardBattingYear('age', id);
 
 				let stats: IStats = {};
-				for (const stat in Stats) {
-					const value = getStatByStandardBattingYear(Stats[stat], id);
+				STATS.forEach(stat => {
+					const value = getStatByStandardBattingYear(stat, id);
 					stats = {
 						...stats,
 						[stat]: parseInt(value, 10)
 					}
-				}
+				});
 
 				// TODO: figure out WAR. Not rendered by cheerio or something?
 				const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
@@ -110,6 +78,20 @@ const getPlayerStats = (url: string) => {
 					...playerStats,
 					[playerAge]: { Year: year, Stats: stats }
 				};
+			}
+
+			let careerStats: IStats = {};
+			STATS.forEach(stat => {
+				const value = getStatByCareer(stat);
+				careerStats = {
+					...careerStats,
+					[stat]: parseInt(value, 10)
+				}
+			});
+
+			playerStats = {
+				...playerStats,
+				['Career']: { Year: 'Career', Stats: careerStats }
 			}
 
 			return playerStats;
