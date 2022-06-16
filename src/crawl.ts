@@ -64,9 +64,12 @@ const getPlayerStats = (url: string) => {
 				let stats: IStats = {};
 				STATS.forEach(stat => {
 					const value = getStatByStandardBattingYear(stat, id);
+					if (stat === 'batting_avg') {
+						console.log(value);
+					}
 					stats = {
 						...stats,
-						[stat]: parseInt(value, 10)
+						[stat]: parseFloat(value)
 					}
 				});
 
@@ -85,7 +88,7 @@ const getPlayerStats = (url: string) => {
 				const value = getStatByCareer(stat);
 				careerStats = {
 					...careerStats,
-					[stat]: parseInt(value, 10)
+					[stat]: parseFloat(value)
 				}
 			});
 

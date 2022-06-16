@@ -32,4 +32,8 @@ export const STATS = new Set<string>([
 	'TB',
 	'SF',
 	'HBP',
+	'batting_avg',
+	'onbase_perc',
+	'slugging_perc',
+	'onbase_plus_slugging',
 ]);
