@@ -14,7 +14,7 @@ const debugOptions = {
     },
 }
 const corsOptions = {
-    origin: 'http://localhost:3000'
+    origin: process.env.APP_ORIGIN || 'http://localhost:3000'
 };
 
 const PORT = process.env.PORT || '1986';
