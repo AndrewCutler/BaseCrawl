@@ -43,12 +43,19 @@ const buildPlayerLookup = () => {
 
 const stripStyling = (html: string): string => html.replace(/(<\/?strong>)|(<\/?em>)/g, '');
 
+// This content is commented out on page load. Not sure of a more elegant soluation.
+const uncommentValueTable = (data: string): string => {
+    return data
+        .replace('<!--\n\n<div class="table_container" id="div_batting_value">', '<div class="table_container" id="div_batting_value">')
+        .replace('</table>\n\n\n</div>\n-->', '</table>\n\n\n</div>\n');
+}
+
 // buildPlayerLookup();
 
 const getPlayerStats = (url: string) => {
     return axios.get(url).then((response) => {
         if (response && response.data) {
-            const $ = cheerio.load(response.data);
+            const $ = cheerio.load(uncommentValueTable(response.data));
 
             const getStandardBattingYears = (): any[] =>
                 $('tr[id^="batting_standard."]').each((_, element) => $(element).html());
@@ -62,6 +69,13 @@ const getPlayerStats = (url: string) => {
 
                 return stripStyling(result);
             }
+            const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
+
+            // const war = () => {
+            //     const valueRows = $('tr[id^="batting_value."]').each((_, element) => $(element).html());
+            //     console.log(valueRows);
+            // }
+            // war();
 
             let playerStats: IPlayerStats = {};
 
@@ -79,8 +93,10 @@ const getPlayerStats = (url: string) => {
                     }
                 });
 
-                // TODO: figure out WAR. Not rendered by cheerio or something?
-                const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
+                stats = {
+                    ...stats,
+                    'WAR': getWAR(year).text()
+                }
                 // console.log(getWAR(year).text());
 
                 playerStats = {
