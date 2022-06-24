@@ -71,12 +71,6 @@ const getPlayerStats = (url: string) => {
             }
             const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
 
-            // const war = () => {
-            //     const valueRows = $('tr[id^="batting_value."]').each((_, element) => $(element).html());
-            //     console.log(valueRows);
-            // }
-            // war();
-
             let playerStats: IPlayerStats = {};
 
             for (const row of getStandardBattingYears()) {
@@ -113,6 +107,8 @@ const getPlayerStats = (url: string) => {
                     [stat]: parseFloat(value)
                 }
             });
+
+            // TODO: grab career WAR
 
             playerStats = {
                 ...playerStats,
