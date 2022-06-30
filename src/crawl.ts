@@ -91,11 +91,11 @@ const getPlayerStats = (url: string) => {
                     ...stats,
                     'WAR': getWAR(year).text()
                 }
-                // console.log(getWAR(year).text());
 
                 playerStats = {
                     ...playerStats,
-                    [playerAge]: { Year: year, Stats: stats }
+                    [playerAge]: { Year: year, Stats: stats },
+                    [year]: { Age: playerAge, Stats: stats }
                 };
             }
 
