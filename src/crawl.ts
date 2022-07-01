@@ -1,4 +1,4 @@
-import { IPlayerStats, IStats, STATS } from './models';
+import { PlayerStats, IStats, STATS } from './models';
 
 const cheerio = require('cheerio');
 const express = require('express');
@@ -71,7 +71,7 @@ const getPlayerStats = (url: string) => {
             }
             const getWAR = (year) => $(`tr[id="batting_value.${year}"] [data-stat="WAR"]`);
 
-            let playerStats: IPlayerStats = {};
+            let playerStats: PlayerStats = new PlayerStats();
 
             for (const row of getStandardBattingYears()) {
                 const id = row.attribs.id;
@@ -94,8 +94,8 @@ const getPlayerStats = (url: string) => {
 
                 playerStats = {
                     ...playerStats,
-                    [playerAge]: { Year: year, Stats: stats },
-                    [year]: { Age: playerAge, Stats: stats }
+                    Ages: [...playerStats.Ages, { Age: playerAge, Stats: stats }],
+                    Years: [...playerStats.Years, { Year: year, Stats: stats }],
                 };
             }
 
@@ -112,7 +112,8 @@ const getPlayerStats = (url: string) => {
 
             playerStats = {
                 ...playerStats,
-                ['Career']: { Year: 'Career', Stats: careerStats }
+                Ages: [...playerStats.Ages, { Age: 'Career', Stats: careerStats }],
+                Years: [...playerStats.Years, { Year: 'Career', Stats: careerStats }],
             }
 
             return playerStats;
