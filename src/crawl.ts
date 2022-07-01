@@ -78,7 +78,7 @@ const getPlayerStats = (url: string) => {
                 const year = id.split('.')[1];
                 const playerAge = getStatByStandardBattingYear('age', id);
 
-                let stats: IStats = {};
+                let stats: IStats;
                 STATS.forEach(stat => {
                     const value = getStatByStandardBattingYear(stat, id);
                     stats = {
@@ -94,12 +94,12 @@ const getPlayerStats = (url: string) => {
 
                 playerStats = {
                     ...playerStats,
-                    Ages: [...playerStats.Ages, { Age: playerAge, Stats: stats }],
-                    Years: [...playerStats.Years, { Year: year, Stats: stats }],
+                    Ages: { ...playerStats.Ages, [playerAge]: stats },
+                    Years: { ...playerStats.Years, [year]: stats },
                 };
             }
 
-            let careerStats: IStats = {};
+            let careerStats: IStats;
             STATS.forEach(stat => {
                 const value = getStatByCareer(stat);
                 careerStats = {
@@ -112,8 +112,8 @@ const getPlayerStats = (url: string) => {
 
             playerStats = {
                 ...playerStats,
-                Ages: [...playerStats.Ages, { Age: 'Career', Stats: careerStats }],
-                Years: [...playerStats.Years, { Year: 'Career', Stats: careerStats }],
+                Ages: { ...playerStats.Ages, Career: careerStats },
+                Years: { ...playerStats.Years, Career: careerStats },
             }
 
             return playerStats;

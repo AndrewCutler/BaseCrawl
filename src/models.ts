@@ -2,33 +2,43 @@
 /**
  * Models and helper functions
  */
-export interface IStats {
-	[name: string]: number;
-}
+type TStat = 'HR' |
+	'H' |
+	'G' |
+	'PA' |
+	'AB' |
+	'R' |
+	'2B' |
+	'3B' |
+	'RBI' |
+	'SB' |
+	'CS' |
+	'BB' |
+	'SO' |
+	'TB' |
+	'SF' |
+	'HBP' |
+	'WAR' |
+	'batting_avg' |
+	'onbase_perc' |
+	'slugging_perc' |
+	'onbase_plus_slugging';
 
-interface IPlayerStats {
-	Stats: IStats;
-}
-
-export interface IAgeStats extends IPlayerStats {
-	Age: string;
-}
-
-export interface IYearStats extends IPlayerStats {
-	Year: string;
+export type IStats = {
+	[name in TStat]: number;
 }
 
 export class PlayerStats {
-	Ages: IAgeStats[];
-	Years: IYearStats[];
+	Ages: { [age: string]: IStats };
+	Years: { [year: string]: IStats };
 
 	constructor() {
-		this.Ages = [];
-		this.Years = [];
+		this.Ages = {};
+		this.Years = {};
 	}
 }
 
-export const STATS = new Set<string>([
+export const STATS = new Set<keyof IStats>([
 	'HR',
 	'H',
 	'G',
