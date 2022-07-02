@@ -1,4 +1,4 @@
-import { PlayerStats, IStats, STATS } from './models';
+import { PlayerStats, IStats, STATS, Constants } from './models';
 
 const cheerio = require('cheerio');
 const express = require('express');
@@ -10,13 +10,13 @@ const corsOptions = {
     origin: process.env.APP_ORIGIN || 'http://localhost:3000'
 };
 const PORT = process.env.PORT || '1986';
-const baseUrl = 'https://www.baseball-reference.com';
-const playerData = JSON.parse(fs.readFileSync('players.json', { encoding: 'utf-8' }));
+const baseUrl = Constants.BASEURL;
+const playerData = JSON.parse(fs.readFileSync(Constants.DATA_JSON, { encoding: 'utf-8' }));
 
 const server = express(/*cors()*/);
 
 const buildPlayerLookup = () => {
-    fs.readFile('players.csv', (err, data) => {
+    fs.readFile(Constants.DATA_CSV, (err, data) => {
         if (err) throw err;
         const playerArray = data.toString().split('\n').map(p => p.split(','));
 
@@ -179,7 +179,10 @@ server.get('/stats/:endpoint', cors(corsOptions), async ({ params: { endpoint } 
 });
 
 server.get('/refresh', (req, res) => {
-    // TODO: retrieve player data and update once daily
+    axios.get(Constants.DATA_CSV_URL).then((response) => {
+        fs.writeFile(Constants.DATA_CSV, response.data, console.error);
+        buildPlayerLookup();
+    });
 })
 
 server.listen(PORT, () => console.log(`Started sever on port ${PORT}.`));

@@ -60,3 +60,10 @@ export const STATS = new Set<TStat>([
 	'slugging_perc',
 	'onbase_plus_slugging',
 ]);
+
+export const Constants = {
+	BASEURL: 'https://www.baseball-reference.com',
+	DATA_CSV: 'players.csv',
+	DATA_CSV_URL: 'https://www.baseball-reference.com/short/inc/players_batted_search_list.csv',
+	DATA_JSON: 'players.json',
+}
