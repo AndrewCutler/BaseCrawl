@@ -25,7 +25,7 @@ type TStat = 'HR' |
 	'onbase_plus_slugging';
 
 export type IStats = {
-	[name in TStat]: number;
+	[name in TStat & 'Year']: number;
 }
 
 export class PlayerStats {
@@ -38,7 +38,7 @@ export class PlayerStats {
 	}
 }
 
-export const STATS = new Set<keyof IStats>([
+export const STATS = new Set<TStat>([
 	'HR',
 	'H',
 	'G',

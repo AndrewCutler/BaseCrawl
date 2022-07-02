@@ -83,13 +83,15 @@ const getPlayerStats = (url: string) => {
                     const value = getStatByStandardBattingYear(stat, id);
                     stats = {
                         ...stats,
-                        [stat]: parseFloat(value)
+                        [stat]: parseFloat(value),
+                        Year: year,
+                        Age: playerAge
                     }
                 });
 
                 stats = {
                     ...stats,
-                    'WAR': getWAR(year).text()
+                    'WAR': +getWAR(year).text()
                 }
 
                 playerStats = {
@@ -104,7 +106,9 @@ const getPlayerStats = (url: string) => {
                 const value = getStatByCareer(stat);
                 careerStats = {
                     ...careerStats,
-                    [stat]: parseFloat(value)
+                    [stat]: parseFloat(value),
+                    Year: 'Career',
+                    Age: 'Career'
                 }
             });
 
