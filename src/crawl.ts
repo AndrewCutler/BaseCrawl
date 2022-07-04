@@ -1,4 +1,4 @@
-import { PlayerStats, IStats, STATS, Constants } from './models';
+import { Constants, IStats, PlayerStats, STATS } from './models';
 
 const cheerio = require('cheerio');
 const express = require('express');
@@ -15,30 +15,27 @@ const playerData = JSON.parse(fs.readFileSync(Constants.DATA_JSON, { encoding: '
 
 const server = express(/*cors()*/);
 
-const buildPlayerLookup = () => {
-    fs.readFile(Constants.DATA_CSV, (err, data) => {
-        if (err) throw err;
-        const playerArray = data.toString().split('\n').map(p => p.split(','));
+const buildPlayerLookup = (data) => {
+    const playerArray = data.toString().split('\n').map(p => p.split(','));
 
-        const playerLookup = playerArray.reduce((prev, curr) => {
-            const [endpoint, name, years] = curr;
-            const entry = {
-                Endpoint: endpoint,
-                Name: name,
-                Years: years
-            };
+    const playerLookup = playerArray.reduce((prev, curr) => {
+        const [endpoint, name, years] = curr;
+        const entry = {
+            Endpoint: endpoint,
+            Name: name,
+            Years: years
+        };
 
-            if (prev[name]) {
-                prev[name] = [...prev[name], entry]
-            } else {
-                prev[name] = [entry];
-            }
+        if (prev[name]) {
+            prev[name] = [...prev[name], entry]
+        } else {
+            prev[name] = [entry];
+        }
 
-            return prev;
-        }, {});
+        return prev;
+    }, {});
 
-        fs.writeFile('players.json', JSON.stringify(playerLookup), console.error)
-    });
+    fs.writeFile('players.json', JSON.stringify(playerLookup), console.error)
 }
 
 const stripStyling = (html: string): string => html.replace(/(<\/?strong>)|(<\/?em>)/g, '');
@@ -180,8 +177,7 @@ server.get('/stats/:endpoint', cors(corsOptions), async ({ params: { endpoint } 
 
 server.get('/refresh', (req, res) => {
     axios.get(Constants.DATA_CSV_URL).then((response) => {
-        fs.writeFile(Constants.DATA_CSV, response.data, console.error);
-        buildPlayerLookup();
+        buildPlayerLookup(response.data);
     });
 })
 
