@@ -135,7 +135,7 @@ const getPlayerStats = (url: string) => {
  * Useless landing route.
  */
 server.get('/', (req, res) => {
-    res.send('Home plate.');
+    res.send(process.env);
 });
 
 /**
